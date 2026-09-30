@@ -1,49 +1,94 @@
 // ============================================================
-// AI ARENA - 2D SHOOTER
-// CPU AI + LEVEL 1-5
+// AI ARENA
+// 2D 1vs1 SHOOTER
+// CPU AI / LEVEL 1-5
 // ============================================================
+
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const startScreen = document.getElementById("startScreen");
-const resultScreen = document.getElementById("resultScreen");
-const hud = document.getElementById("hud");
 
-const resultTitle = document.getElementById("resultTitle");
-const resultText = document.getElementById("resultText");
+// ============================================================
+// HTML
+// ============================================================
 
-const playerHp = document.getElementById("playerHp");
-const enemyHp = document.getElementById("enemyHp");
-const playerHpText = document.getElementById("playerHpText");
-const enemyHpText = document.getElementById("enemyHpText");
+const startScreen =
+    document.getElementById("startScreen");
+
+const resultScreen =
+    document.getElementById("resultScreen");
+
+const hud =
+    document.getElementById("hud");
+
+const startBtn =
+    document.getElementById("startBtn");
+
+const restartBtn =
+    document.getElementById("restartBtn");
+
+const nextLevelBtn =
+    document.getElementById("nextLevelBtn");
+
+const resultTitle =
+    document.getElementById("resultTitle");
+
+const resultText =
+    document.getElementById("resultText");
+
+const playerHp =
+    document.getElementById("playerHp");
+
+const enemyHp =
+    document.getElementById("enemyHp");
+
+const playerHpText =
+    document.getElementById("playerHpText");
+
+const enemyHpText =
+    document.getElementById("enemyHpText");
+
+const levelText =
+    document.getElementById("levelText");
 
 
 // ============================================================
-// 基本設定
+// ワールド
 // ============================================================
 
 const WORLD_WIDTH = 1280;
+
 const WORLD_HEIGHT = 720;
 
 const GROUND_Y = 620;
 
-const GRAVITY = 1800;
-const PLAYER_SPEED = 350;
+const GRAVITY = 1700;
+
+const PLAYER_SPEED = 340;
+
 const JUMP_POWER = 650;
 
-let W = window.innerWidth;
-let H = window.innerHeight;
+
+// ============================================================
+// ゲーム状態
+// ============================================================
+
+let level = 1;
 
 let gameRunning = false;
+
 let lastTime = 0;
 
-let shots = [];
+let player;
+
+let cpu;
+
+let bullets = [];
+
 let particles = [];
 
-let currentLevel = 1;
-
-let audioCtx = null;
+let platforms = [];
 
 
 // ============================================================
@@ -51,562 +96,646 @@ let audioCtx = null;
 // ============================================================
 
 const keys = {
+
     left: false,
+
     right: false,
+
     jump: false,
+
     shoot: false
+
 };
 
 
 // ============================================================
-// レベルデータ
+// CPU入力
+//
+// ★ここがプレイヤーと完全に別
 // ============================================================
 
-const LEVELS = {
+const cpuInput = {
+
+    left: false,
+
+    right: false,
+
+    jump: false,
+
+    shoot: false
+
+};
+
+
+// ============================================================
+// CPU AI設定
+// ============================================================
+
+const AI_LEVELS = {
 
     1: {
-        name: "TRAINING",
-        platforms: [
-            { x: 400, y: 520, w: 180, h: 20 },
-            { x: 700, y: 500, w: 180, h: 20 }
-        ],
-        ai: {
-            reaction: 0.75,
-            accuracy: 0.65,
-            aggression: 0.45,
-            speed: 290
-        }
+
+        reaction: 0.70,
+
+        accuracy: 0.55,
+
+        speed: 0.75,
+
+        aggression: 0.35
+
     },
 
     2: {
-        name: "CITY",
-        platforms: [
-            { x: 280, y: 500, w: 170, h: 20 },
-            { x: 830, y: 500, w: 170, h: 20 },
-            { x: 555, y: 430, w: 170, h: 20 }
-        ],
-        ai: {
-            reaction: 0.62,
-            accuracy: 0.72,
-            aggression: 0.55,
-            speed: 300
-        }
+
+        reaction: 0.55,
+
+        accuracy: 0.65,
+
+        speed: 0.82,
+
+        aggression: 0.45
+
     },
 
     3: {
-        name: "FACTORY",
-        platforms: [
-            { x: 250, y: 530, w: 150, h: 20 },
-            { x: 880, y: 530, w: 150, h: 20 },
-            { x: 520, y: 470, w: 240, h: 20 }
-        ],
-        ai: {
-            reaction: 0.50,
-            accuracy: 0.78,
-            aggression: 0.62,
-            speed: 315
-        }
+
+        reaction: 0.42,
+
+        accuracy: 0.75,
+
+        speed: 0.90,
+
+        aggression: 0.58
+
     },
 
     4: {
-        name: "ROOFTOPS",
-        platforms: [
-            { x: 180, y: 500, w: 170, h: 20 },
-            { x: 930, y: 500, w: 170, h: 20 },
-            { x: 500, y: 390, w: 280, h: 20 }
-        ],
-        ai: {
-            reaction: 0.38,
-            accuracy: 0.84,
-            aggression: 0.70,
-            speed: 330
-        }
+
+        reaction: 0.30,
+
+        accuracy: 0.84,
+
+        speed: 0.96,
+
+        aggression: 0.70
+
     },
 
     5: {
-        name: "FINAL ARENA",
-        platforms: [
-            { x: 200, y: 520, w: 190, h: 20 },
-            { x: 890, y: 520, w: 190, h: 20 },
-            { x: 450, y: 450, w: 380, h: 20 }
-        ],
-        ai: {
-            reaction: 0.25,
-            accuracy: 0.91,
-            aggression: 0.82,
-            speed: 345
-        }
+
+        reaction: 0.20,
+
+        accuracy: 0.92,
+
+        speed: 1.00,
+
+        aggression: 0.82
+
     }
 
 };
 
 
 // ============================================================
-// 現在のマップ
+// マップ
+//
+// 障害物は少なめ
 // ============================================================
 
-let platforms = [];
+const MAPS = {
 
-function loadLevel(levelNumber) {
+    1: {
 
-    currentLevel = levelNumber;
+        name: "TRAINING",
 
-    const data = LEVELS[currentLevel];
+        platforms: [
 
-    platforms = data.platforms.map(p => ({
-        x: p.x,
-        y: p.y,
-        w: p.w,
-        h: p.h
-    }));
+            {
+                x: 450,
+                y: 510,
+                w: 180,
+                h: 20
+            }
+
+        ]
+
+    },
+
+
+    2: {
+
+        name: "CITY",
+
+        platforms: [
+
+            {
+                x: 250,
+                y: 520,
+                w: 180,
+                h: 20
+            },
+
+            {
+                x: 850,
+                y: 520,
+                w: 180,
+                h: 20
+            }
+
+        ]
+
+    },
+
+
+    3: {
+
+        name: "FACTORY",
+
+        platforms: [
+
+            {
+                x: 220,
+                y: 520,
+                w: 160,
+                h: 20
+            },
+
+            {
+                x: 900,
+                y: 520,
+                w: 160,
+                h: 20
+            },
+
+            {
+                x: 540,
+                y: 440,
+                w: 200,
+                h: 20
+            }
+
+        ]
+
+    },
+
+
+    4: {
+
+        name: "ROOFTOPS",
+
+        platforms: [
+
+            {
+                x: 160,
+                y: 500,
+                w: 180,
+                h: 20
+            },
+
+            {
+                x: 940,
+                y: 500,
+                w: 180,
+                h: 20
+            },
+
+            {
+                x: 500,
+                y: 390,
+                w: 280,
+                h: 20
+            }
+
+        ]
+
+    },
+
+
+    5: {
+
+        name: "FINAL ARENA",
+
+        platforms: [
+
+            {
+                x: 180,
+                y: 520,
+                w: 200,
+                h: 20
+            },
+
+            {
+                x: 900,
+                y: 520,
+                w: 200,
+                h: 20
+            },
+
+            {
+                x: 430,
+                y: 430,
+                w: 420,
+                h: 20
+            }
+
+        ]
+
+    }
+
+};
+
+
+// ============================================================
+// レベル読み込み
+// ============================================================
+
+function loadMap() {
+
+    platforms =
+        MAPS[level].platforms.map(
+            p => ({ ...p })
+        );
+
 }
 
 
 // ============================================================
-// ファイター生成
+// ファイター作成
 // ============================================================
 
-function createFighter(x, color, facing) {
+function createFighter(
+    x,
+    color,
+    facing
+) {
 
     return {
 
         x: x,
-        y: GROUND_Y - 58,
+
+        y: GROUND_Y - 60,
+
+        w: 36,
+
+        h: 60,
 
         vx: 0,
+
         vy: 0,
 
-        w: 34,
-        h: 58,
-
         color: color,
+
         facing: facing,
 
         hp: 10,
 
         onGround: false,
 
-        cooldown: 0,
-
-        hitFlash: 0,
-
         jumpLock: false,
 
-        // AI専用
-        aiDecisionTimer: 0,
-        aiDirection: 0,
-        aiWantJump: false,
-        aiWantShoot: false,
+        shootCooldown: 0,
 
-        lastPlayerX: 0,
-        lastPlayerY: 0,
+        hitTimer: 0,
 
-        // ダメージを受けた直後
-        damageReaction: 0
+        hurtTimer: 0
+
     };
+
 }
 
 
-let player;
-let cpu;
-
-
 // ============================================================
-// ゲームリセット
+// ゲーム初期化
 // ============================================================
 
 function resetGame() {
 
-    loadLevel(currentLevel);
+    loadMap();
 
-    player = createFighter(
-        150,
-        "#4da6ff",
-        1
-    );
 
-    cpu = createFighter(
-        WORLD_WIDTH - 190,
-        "#ff5c70",
-        -1
-    );
+    player =
+        createFighter(
+            120,
+            "#4da6ff",
+            1
+        );
 
-    shots = [];
+
+    cpu =
+        createFighter(
+            WORLD_WIDTH - 156,
+            "#ff5369",
+            -1
+        );
+
+
+    bullets = [];
+
     particles = [];
 
-    updateHud();
+
+    cpuThinkTimer = 0;
+
+    cpuStrafeTimer = 0;
+
+
+    updateHUD();
+
 }
 
 
 // ============================================================
-// 画面サイズ
+// CPU思考タイマー
 // ============================================================
 
-function resize() {
+let cpuThinkTimer = 0;
 
-    W = window.innerWidth;
-    H = window.innerHeight;
-
-    const dpr = window.devicePixelRatio || 1;
-
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-
-    ctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
-    );
-}
-
-window.addEventListener("resize", resize);
-
-resize();
-
-
-function sx(x) {
-    return x * (W / WORLD_WIDTH);
-}
-
-
-function sy(y) {
-    return y * (H / WORLD_HEIGHT);
-}
+let cpuStrafeTimer = 0;
 
 
 // ============================================================
-// スタート
+// CPU AI
 // ============================================================
 
-function startGame() {
+function updateCPUAI(dt) {
 
-    resetGame();
-
-    startScreen.classList.add("hidden");
-    resultScreen.classList.add("hidden");
-    hud.classList.remove("hidden");
-
-    gameRunning = true;
-
-    lastTime = performance.now();
-
-    initSound();
-
-    requestAnimationFrame(gameLoop);
-}
+    const ai =
+        AI_LEVELS[level];
 
 
-document.getElementById("startBtn").onclick = startGame;
-document.getElementById("restartBtn").onclick = startGame;
+    const playerCenter =
+        player.x + player.w / 2;
 
 
-// ============================================================
-// レベル選択UI
-// ============================================================
-
-// HTMLを大幅に変更しなくてもいいように、
-// JavaScriptからレベル選択ボタンを追加する。
-
-const levelBox = document.createElement("div");
-
-levelBox.id = "levelSelect";
-
-levelBox.style.marginTop = "18px";
-levelBox.style.display = "flex";
-levelBox.style.flexWrap = "wrap";
-levelBox.style.justifyContent = "center";
-levelBox.style.gap = "8px";
-
-for (let i = 1; i <= 5; i++) {
-
-    const button = document.createElement("button");
-
-    button.textContent = "LEVEL " + i;
-
-    button.style.padding = "8px 12px";
-    button.style.fontSize = "13px";
-
-    button.onclick = () => {
-
-        currentLevel = i;
-
-        document.querySelectorAll("#levelSelect button")
-            .forEach(b => {
-                b.style.opacity = "0.55";
-            });
-
-        button.style.opacity = "1";
-    };
-
-    levelBox.appendChild(button);
-}
-
-startScreen.querySelector(".panel").appendChild(levelBox);
+    const cpuCenter =
+        cpu.x + cpu.w / 2;
 
 
-// ============================================================
-// キーボード
-// ============================================================
-
-function handleKey(e, down) {
-
-    const key = e.key.toLowerCase();
-
-    if (key === "a" || key === "arrowleft") {
-        keys.left = down;
-    }
-
-    if (key === "d" || key === "arrowright") {
-        keys.right = down;
-    }
-
-    if (
-        key === "w" ||
-        key === "arrowup" ||
-        key === " "
-    ) {
-        keys.jump = down;
-    }
-
-    if (key === "f") {
-        keys.shoot = down;
-    }
-
-    if (
-        key === "arrowleft" ||
-        key === "arrowright" ||
-        key === "arrowup" ||
-        key === " "
-    ) {
-        e.preventDefault();
-    }
-}
+    const dx =
+        playerCenter - cpuCenter;
 
 
-window.addEventListener(
-    "keydown",
-    e => handleKey(e, true)
-);
-
-window.addEventListener(
-    "keyup",
-    e => handleKey(e, false)
-);
+    const distance =
+        Math.abs(dx);
 
 
-// ============================================================
-// マウス射撃
-// ============================================================
-
-canvas.addEventListener(
-    "pointerdown",
-    () => {
-
-        keys.shoot = true;
-
-        initSound();
-    }
-);
+    const heightDifference =
+        player.y - cpu.y;
 
 
-window.addEventListener(
-    "pointerup",
-    () => {
-        keys.shoot = false;
-    }
-);
+    // ------------------------------------------
+    // CPUは一定時間ごとに「考える」
+    // ------------------------------------------
+
+    cpuThinkTimer -= dt;
 
 
-// ============================================================
-// スマホボタン
-// ============================================================
+    cpuStrafeTimer -= dt;
 
-document
-    .querySelectorAll("[data-key]")
-    .forEach(button => {
 
-        const key = button.dataset.key;
+    if (cpuThinkTimer <= 0) {
 
-        button.addEventListener(
-            "pointerdown",
-            e => {
+        cpuThinkTimer =
+            ai.reaction *
+            (0.8 + Math.random() * 0.4);
 
-                e.preventDefault();
 
-                keys[key] = true;
+        // まず全部リセット
+        cpuInput.left = false;
 
-                initSound();
+        cpuInput.right = false;
+
+        cpuInput.jump = false;
+
+        cpuInput.shoot = false;
+
+
+        // ==================================================
+        // ① 距離によって行動
+        // ==================================================
+
+
+        // かなり遠い
+        if (distance > 600) {
+
+            if (dx > 0) {
+
+                cpuInput.right = true;
+
+            } else {
+
+                cpuInput.left = true;
+
             }
-        );
 
-        button.addEventListener(
-            "pointerup",
-            e => {
-
-                e.preventDefault();
-
-                keys[key] = false;
-            }
-        );
-
-        button.addEventListener(
-            "pointercancel",
-            () => {
-                keys[key] = false;
-            }
-        );
-
-    });
-
-
-// ============================================================
-// サウンド
-// ============================================================
-
-function initSound() {
-
-    if (!audioCtx) {
-
-        audioCtx = new (
-            window.AudioContext ||
-            window.webkitAudioContext
-        )();
-    }
-
-    if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-    }
-}
-
-
-function beep(
-    frequency,
-    duration,
-    type = "square",
-    volume = 0.04
-) {
-
-    if (!audioCtx) return;
-
-    const oscillator =
-        audioCtx.createOscillator();
-
-    const gain =
-        audioCtx.createGain();
-
-    oscillator.type = type;
-
-    oscillator.frequency.value =
-        frequency;
-
-    gain.gain.setValueAtTime(
-        volume,
-        audioCtx.currentTime
-    );
-
-    gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        audioCtx.currentTime + duration
-    );
-
-    oscillator.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    oscillator.start();
-
-    oscillator.stop(
-        audioCtx.currentTime + duration
-    );
-}
-
-
-function shootSound() {
-
-    beep(180, 0.05, "sawtooth", 0.035);
-}
-
-
-function hitSound() {
-
-    beep(90, 0.09, "square", 0.05);
-}
-
-
-function jumpSound() {
-
-    beep(390, 0.07, "triangle", 0.025);
-}
-
-
-// ============================================================
-// 衝突判定
-// ============================================================
-
-function overlap(a, b) {
-
-    return (
-        a.x < b.x + b.w &&
-        a.x + a.w > b.x &&
-        a.y < b.y + b.h &&
-        a.y + a.h > b.y
-    );
-}
-
-
-// ============================================================
-// 地面・足場
-// ============================================================
-
-function checkGround(fighter, oldY) {
-
-    fighter.onGround = false;
-
-    const bottom =
-        fighter.y + fighter.h;
-
-    // 地面
-    if (
-        bottom >= GROUND_Y &&
-        oldY + fighter.h <= GROUND_Y + 5
-    ) {
-
-        fighter.y =
-            GROUND_Y - fighter.h;
-
-        fighter.vy = 0;
-
-        fighter.onGround = true;
-
-        return;
-    }
-
-
-    // 足場
-    for (const p of platforms) {
-
-        const horizontal =
-            fighter.x + fighter.w > p.x &&
-            fighter.x < p.x + p.w;
-
-        const fallingOnto =
-            bottom >= p.y &&
-            oldY + fighter.h <= p.y + 6;
-
-        if (horizontal && fallingOnto) {
-
-            fighter.y =
-                p.y - fighter.h;
-
-            fighter.vy = 0;
-
-            fighter.onGround = true;
-
-            return;
         }
+
+
+        // 遠い
+        else if (distance > 350) {
+
+            if (
+                Math.random() <
+                ai.aggression
+            ) {
+
+                if (dx > 0) {
+
+                    cpuInput.right = true;
+
+                } else {
+
+                    cpuInput.left = true;
+
+                }
+
+            }
+
+        }
+
+
+        // 中距離
+        else if (distance > 180) {
+
+            // 一定確率で接近
+            if (
+                Math.random() <
+                ai.aggression
+            ) {
+
+                if (dx > 0) {
+
+                    cpuInput.right = true;
+
+                } else {
+
+                    cpuInput.left = true;
+
+                }
+
+            }
+
+        }
+
+
+        // 近すぎる
+        else {
+
+            // CPU自身で距離を取る
+
+            if (dx > 0) {
+
+                cpuInput.left = true;
+
+            } else {
+
+                cpuInput.right = true;
+
+            }
+
+        }
+
+
+        // ==================================================
+        // ② ストレイフ
+        // ==================================================
+
+        if (cpuStrafeTimer <= 0) {
+
+            cpuStrafeTimer =
+                0.5 +
+                Math.random() * 1.3;
+
+        }
+
+
+        // ==================================================
+        // ③ 射撃
+        // ==================================================
+
+        if (distance < 750) {
+
+            if (
+                Math.random() <
+                ai.accuracy
+            ) {
+
+                cpuInput.shoot = true;
+
+            }
+
+        }
+
+
+        // ==================================================
+        // ④ ジャンプ
+        // ==================================================
+
+        if (cpu.onGround) {
+
+            // プレイヤーが高い
+            if (
+                heightDifference < -70 &&
+                distance < 600
+            ) {
+
+                cpuInput.jump = true;
+
+            }
+
+
+            // プレイヤーに接近しすぎた
+            else if (
+                distance < 180 &&
+                Math.random() < 0.35
+            ) {
+
+                cpuInput.jump = true;
+
+            }
+
+
+            // 時々自分からジャンプ
+            else if (
+                Math.random() < 0.08
+            ) {
+
+                cpuInput.jump = true;
+
+            }
+
+        }
+
     }
+
+
+    // ==================================================
+    // CPUの向き
+    // ==================================================
+
+    if (dx > 0) {
+
+        cpu.facing = 1;
+
+    } else {
+
+        cpu.facing = -1;
+
+    }
+
+
+    // ==================================================
+    // CPUを動かす
+    //
+    // ★プレイヤーkeysはここでは一切使わない
+    // ==================================================
+
+    let direction = 0;
+
+
+    if (cpuInput.left) {
+
+        direction = -1;
+
+    }
+
+
+    if (cpuInput.right) {
+
+        direction = 1;
+
+    }
+
+
+    moveFighter(
+        cpu,
+        dt,
+        direction,
+        cpuInput.jump,
+        ai.speed
+    );
+
+
+    // ==================================================
+    // CPU射撃
+    // ==================================================
+
+    if (cpuInput.shoot) {
+
+        const directionToPlayer =
+            Math.sign(
+                playerCenter -
+                cpuCenter
+            );
+
+
+        fireBullet(
+            cpu,
+            directionToPlayer
+        );
+
+    }
+
 }
 
 
@@ -618,24 +747,32 @@ function moveFighter(
     fighter,
     dt,
     direction,
-    jump
+    jump,
+    speedMultiplier = 1
 ) {
 
-    const oldY = fighter.y;
+    const oldY =
+        fighter.y;
+
 
     fighter.vx =
-        direction * PLAYER_SPEED;
+        direction *
+        PLAYER_SPEED *
+        speedMultiplier;
+
 
     fighter.x +=
         fighter.vx * dt;
 
 
-    // マップ外に出ない
+    // マップ外防止
     fighter.x =
         Math.max(
             20,
             Math.min(
-                WORLD_WIDTH - fighter.w - 20,
+                WORLD_WIDTH -
+                fighter.w -
+                20,
                 fighter.x
             )
         );
@@ -651,16 +788,22 @@ function moveFighter(
         fighter.vy =
             -JUMP_POWER;
 
-        fighter.onGround = false;
+        fighter.onGround =
+            false;
 
-        fighter.jumpLock = true;
+        fighter.jumpLock =
+            true;
 
-        jumpSound();
+        playJumpSound();
+
     }
 
 
     if (!jump) {
-        fighter.jumpLock = false;
+
+        fighter.jumpLock =
+            false;
+
     }
 
 
@@ -668,56 +811,181 @@ function moveFighter(
     fighter.vy +=
         GRAVITY * dt;
 
+
     fighter.y +=
         fighter.vy * dt;
 
 
-    checkGround(
-        fighter,
-        oldY
-    );
+    // 地面
+    fighter.onGround = false;
 
 
-    if (fighter.cooldown > 0) {
-        fighter.cooldown -= dt;
+    if (
+        fighter.y +
+        fighter.h >=
+        GROUND_Y &&
+        oldY +
+        fighter.h <=
+        GROUND_Y + 10
+    ) {
+
+        fighter.y =
+            GROUND_Y -
+            fighter.h;
+
+        fighter.vy = 0;
+
+        fighter.onGround = true;
+
     }
 
-    if (fighter.hitFlash > 0) {
-        fighter.hitFlash -= dt;
+
+    // 足場
+    for (const p of platforms) {
+
+        const horizontal =
+            fighter.x +
+            fighter.w >
+            p.x &&
+            fighter.x <
+            p.x +
+            p.w;
+
+
+        const falling =
+            fighter.vy >= 0;
+
+
+        const landing =
+            fighter.y +
+            fighter.h >=
+            p.y &&
+            oldY +
+            fighter.h <=
+            p.y + 8;
+
+
+        if (
+            horizontal &&
+            falling &&
+            landing
+        ) {
+
+            fighter.y =
+                p.y -
+                fighter.h;
+
+            fighter.vy = 0;
+
+            fighter.onGround = true;
+
+        }
+
     }
 
-    if (fighter.damageReaction > 0) {
-        fighter.damageReaction -= dt;
+
+    if (
+        fighter.shootCooldown > 0
+    ) {
+
+        fighter.shootCooldown -= dt;
+
     }
+
+
+    if (
+        fighter.hitTimer > 0
+    ) {
+
+        fighter.hitTimer -= dt;
+
+    }
+
 }
 
 
 // ============================================================
-// 射撃
+// プレイヤー更新
 // ============================================================
 
-function fire(fighter, direction) {
+function updatePlayer(dt) {
 
-    if (fighter.cooldown > 0) {
-        return;
+    const direction =
+        (keys.right ? 1 : 0) -
+        (keys.left ? 1 : 0);
+
+
+    moveFighter(
+        player,
+        dt,
+        direction,
+        keys.jump,
+        1
+    );
+
+
+    // プレイヤーはCPUの方向を自動で狙わない
+    // 自分とCPUの位置から撃つ方向だけ決定
+
+    if (keys.shoot) {
+
+        const directionToCPU =
+            Math.sign(
+                cpu.x -
+                player.x
+            );
+
+
+        fireBullet(
+            player,
+            directionToCPU
+        );
+
     }
+
+}
+
+
+// ============================================================
+// 弾
+// ============================================================
+
+function fireBullet(
+    owner,
+    direction
+) {
+
+    if (
+        owner.shootCooldown > 0
+    ) {
+
+        return;
+
+    }
+
 
     if (direction === 0) {
+
         return;
+
     }
 
-    fighter.cooldown = 0.42;
+
+    owner.shootCooldown =
+        0.38;
+
 
     const bulletX =
         direction > 0
-            ? fighter.x + fighter.w + 4
-            : fighter.x - 4;
+            ? owner.x + owner.w
+            : owner.x;
+
 
     const bulletY =
-        fighter.y + 24;
+        owner.y + 25;
 
 
-    shots.push({
+    bullets.push({
 
         x: bulletX,
 
@@ -725,15 +993,112 @@ function fire(fighter, direction) {
 
         vx: direction * 900,
 
-        owner: fighter,
-
-        radius: 5,
+        owner: owner,
 
         life: 1.5
+
     });
 
 
-    shootSound();
+    playShootSound();
+
+}
+
+
+// ============================================================
+// 弾更新
+// ============================================================
+
+function updateBullets(dt) {
+
+    for (
+        let i = bullets.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const bullet =
+            bullets[i];
+
+
+        bullet.x +=
+            bullet.vx * dt;
+
+
+        bullet.life -= dt;
+
+
+        let remove =
+            bullet.life <= 0;
+
+
+        // マップ外
+        if (
+            bullet.x < -50 ||
+            bullet.x >
+            WORLD_WIDTH + 50
+        ) {
+
+            remove = true;
+
+        }
+
+
+        // 足場
+        for (const p of platforms) {
+
+            if (
+                bullet.x >= p.x &&
+                bullet.x <=
+                p.x + p.w &&
+                bullet.y >= p.y &&
+                bullet.y <=
+                p.y + p.h
+            ) {
+
+                remove = true;
+
+            }
+
+        }
+
+
+        // 標的
+        const target =
+            bullet.owner === player
+                ? cpu
+                : player;
+
+
+        if (
+            !remove &&
+            bullet.x >
+                target.x &&
+            bullet.x <
+                target.x +
+                target.w &&
+            bullet.y >
+                target.y &&
+            bullet.y <
+                target.y +
+                target.h
+        ) {
+
+            damage(target);
+
+            remove = true;
+
+        }
+
+
+        if (remove) {
+
+            bullets.splice(i, 1);
+
+        }
+
+    }
+
 }
 
 
@@ -745,14 +1110,29 @@ function damage(target) {
 
     target.hp--;
 
-    target.hitFlash = 0.12;
-
-    target.damageReaction = 0.3;
-
-    hitSound();
+    target.hitTimer =
+        0.15;
 
 
-    for (let i = 0; i < 10; i++) {
+    // CPUは被弾したらすぐ判断し直す
+    if (target === cpu) {
+
+        cpuThinkTimer = 0;
+
+        cpuInput.jump =
+            Math.random() < 0.7;
+
+    }
+
+
+    playHitSound();
+
+
+    for (
+        let i = 0;
+        i < 8;
+        i++
+    ) {
 
         particles.push({
 
@@ -761,419 +1141,24 @@ function damage(target) {
                 target.w / 2,
 
             y:
-                target.y + 20,
+                target.y +
+                25,
 
             vx:
-                (Math.random() - 0.5) * 220,
+                (Math.random() - 0.5) *
+                250,
 
             vy:
-                (Math.random() - 0.5) * 200,
+                (Math.random() - 0.5) *
+                200,
 
-            life: 0.4
+            life:
+                0.35
+
         });
-    }
-}
 
-
-// ============================================================
-// CPU AI
-// ============================================================
-
-function updateAI(dt) {
-
-    const settings =
-        LEVELS[currentLevel].ai;
-
-
-    // --------------------------------------------------------
-    // プレイヤーとの距離
-    // --------------------------------------------------------
-
-    const playerCenter =
-        player.x + player.w / 2;
-
-    const cpuCenter =
-        cpu.x + cpu.w / 2;
-
-    const dx =
-        playerCenter - cpuCenter;
-
-    const distance =
-        Math.abs(dx);
-
-
-    const verticalDistance =
-        player.y - cpu.y;
-
-
-    // --------------------------------------------------------
-    // CPUは一定時間ごとに「考える」
-    // --------------------------------------------------------
-
-    cpu.aiDecisionTimer -= dt;
-
-
-    if (cpu.aiDecisionTimer <= 0) {
-
-        cpu.aiDecisionTimer =
-            settings.reaction *
-            (0.75 + Math.random() * 0.5);
-
-
-        // ====================================================
-        // CPUの基本行動
-        // ====================================================
-
-        let direction = 0;
-
-
-        // プレイヤーがかなり遠い
-        if (distance > 500) {
-
-            direction =
-                Math.sign(dx);
-        }
-
-
-        // 中距離
-        else if (distance > 280) {
-
-            // 攻撃しながら近づくことがある
-            if (
-                Math.random() <
-                settings.aggression
-            ) {
-
-                direction =
-                    Math.sign(dx);
-
-            } else {
-
-                direction = 0;
-            }
-        }
-
-
-        // 近距離
-        else {
-
-            // 近づきすぎたら距離を取る
-            if (distance < 150) {
-
-                direction =
-                    -Math.sign(dx);
-
-            } else {
-
-                // 少しランダムに動く
-                const random =
-                    Math.random();
-
-                if (
-                    random <
-                    settings.aggression
-                ) {
-
-                    direction =
-                        Math.sign(dx);
-
-                } else if (
-                    random < 0.5
-                ) {
-
-                    direction =
-                        -Math.sign(dx);
-
-                } else {
-
-                    direction = 0;
-                }
-            }
-        }
-
-
-        // ====================================================
-        // CPUの射撃判断
-        // ====================================================
-
-        let wantsShoot = false;
-
-
-        if (
-            distance < 700
-        ) {
-
-            const chance =
-                settings.accuracy;
-
-
-            if (
-                Math.random() <
-                chance
-            ) {
-
-                wantsShoot = true;
-            }
-        }
-
-
-        // ====================================================
-        // 高低差がある場合
-        // ====================================================
-
-        let wantsJump = false;
-
-
-        if (cpu.onGround) {
-
-            // プレイヤーが上にいる
-            if (
-                verticalDistance < -60 &&
-                distance < 500
-            ) {
-
-                wantsJump = true;
-            }
-
-
-            // プレイヤーが遠くて
-            // 高い場所に移動したい
-            else if (
-                distance > 400 &&
-                Math.random() < 0.25
-            ) {
-
-                wantsJump = true;
-            }
-
-
-            // 被弾した直後はジャンプして逃げる
-            else if (
-                cpu.damageReaction > 0 &&
-                Math.random() < 0.55
-            ) {
-
-                wantsJump = true;
-            }
-        }
-
-
-        // ====================================================
-        // 足場を見てジャンプ
-        // ====================================================
-
-        const nextPlatform =
-            findUsefulPlatform(cpu);
-
-
-        if (
-            nextPlatform &&
-            cpu.onGround &&
-            Math.random() < 0.35
-        ) {
-
-            wantsJump = true;
-        }
-
-
-        cpu.aiDirection =
-            direction;
-
-        cpu.aiWantJump =
-            wantsJump;
-
-        cpu.aiWantShoot =
-            wantsShoot;
     }
 
-
-    // ========================================================
-    // 実際にAIを動かす
-    // ========================================================
-
-    moveFighter(
-        cpu,
-        dt,
-        cpu.aiDirection,
-        cpu.aiWantJump
-    );
-
-
-    // ========================================================
-    // AIの向き
-    // ========================================================
-
-    if (dx > 0) {
-
-        cpu.facing = 1;
-
-    } else if (dx < 0) {
-
-        cpu.facing = -1;
-    }
-
-
-    // ========================================================
-    // AI射撃
-    // ========================================================
-
-    if (cpu.aiWantShoot) {
-
-        let aimDirection =
-            Math.sign(dx);
-
-
-        // 精度によるミス
-        const accuracy =
-            settings.accuracy;
-
-
-        if (
-            Math.random() >
-            accuracy
-        ) {
-
-            // わざと逆方向に撃つこともある
-            if (Math.random() < 0.5) {
-                aimDirection *= -1;
-            }
-        }
-
-
-        fire(
-            cpu,
-            aimDirection
-        );
-    }
-}
-
-
-// ============================================================
-// CPUが使えそうな足場を探す
-// ============================================================
-
-function findUsefulPlatform(fighter) {
-
-    let closest = null;
-
-    let bestDistance = Infinity;
-
-
-    for (const p of platforms) {
-
-        // 現在地より少し上にある足場
-        if (
-            p.y < fighter.y &&
-            Math.abs(
-                p.x -
-                fighter.x
-            ) < 450
-        ) {
-
-            const distance =
-                Math.abs(
-                    (p.x + p.w / 2) -
-                    (fighter.x + fighter.w / 2)
-                );
-
-
-            if (
-                distance <
-                bestDistance
-            ) {
-
-                bestDistance =
-                    distance;
-
-                closest = p;
-            }
-        }
-    }
-
-
-    return closest;
-}
-
-
-// ============================================================
-// 弾更新
-// ============================================================
-
-function updateShots(dt) {
-
-    for (
-        let i = shots.length - 1;
-        i >= 0;
-        i--
-    ) {
-
-        const shot =
-            shots[i];
-
-
-        shot.x +=
-            shot.vx * dt;
-
-        shot.life -= dt;
-
-
-        let remove =
-            shot.life <= 0 ||
-            shot.x < -30 ||
-            shot.x > WORLD_WIDTH + 30;
-
-
-        // ----------------------------------------------------
-        // 足場との衝突
-        // ----------------------------------------------------
-
-        if (!remove) {
-
-            for (const p of platforms) {
-
-                if (
-                    shot.x > p.x &&
-                    shot.x < p.x + p.w &&
-                    shot.y > p.y &&
-                    shot.y < p.y + p.h
-                ) {
-
-                    remove = true;
-
-                    break;
-                }
-            }
-        }
-
-
-        // ----------------------------------------------------
-        // プレイヤー / CPUとの衝突
-        // ----------------------------------------------------
-
-        const target =
-            shot.owner === player
-                ? cpu
-                : player;
-
-
-        if (
-            !remove &&
-            shot.x > target.x &&
-            shot.x < target.x + target.w &&
-            shot.y > target.y &&
-            shot.y < target.y + target.h
-        ) {
-
-            damage(target);
-
-            remove = true;
-        }
-
-
-        if (remove) {
-            shots.splice(i, 1);
-        }
-    }
 }
 
 
@@ -1184,7 +1169,8 @@ function updateShots(dt) {
 function updateParticles(dt) {
 
     for (
-        let i = particles.length - 1;
+        let i =
+            particles.length - 1;
         i >= 0;
         i--
     ) {
@@ -1192,107 +1178,35 @@ function updateParticles(dt) {
         const p =
             particles[i];
 
+
         p.x +=
             p.vx * dt;
+
 
         p.y +=
             p.vy * dt;
 
+
         p.vy +=
             500 * dt;
+
 
         p.life -= dt;
 
 
-        if (p.life <= 0) {
-            particles.splice(i, 1);
-        }
-    }
-}
+        if (
+            p.life <= 0
+        ) {
 
-
-// ============================================================
-// ゲーム更新
-// ============================================================
-
-function update(dt) {
-
-    // --------------------------------------------------------
-    // プレイヤー
-    // --------------------------------------------------------
-
-    const direction =
-        (keys.right ? 1 : 0) -
-        (keys.left ? 1 : 0);
-
-
-    moveFighter(
-        player,
-        dt,
-        direction,
-        keys.jump
-    );
-
-
-    // --------------------------------------------------------
-    // プレイヤー射撃
-    // --------------------------------------------------------
-
-    if (keys.shoot) {
-
-        const directionToCPU =
-            Math.sign(
-                (cpu.x + cpu.w / 2) -
-                (player.x + player.w / 2)
+            particles.splice(
+                i,
+                1
             );
 
+        }
 
-        fire(
-            player,
-            directionToCPU
-        );
     }
 
-
-    // --------------------------------------------------------
-    // CPU
-    // --------------------------------------------------------
-
-    updateAI(dt);
-
-
-    // --------------------------------------------------------
-    // 弾
-    // --------------------------------------------------------
-
-    updateShots(dt);
-
-
-    // --------------------------------------------------------
-    // パーティクル
-    // --------------------------------------------------------
-
-    updateParticles(dt);
-
-
-    // --------------------------------------------------------
-    // HP
-    // --------------------------------------------------------
-
-    updateHud();
-
-
-    // --------------------------------------------------------
-    // 勝敗
-    // --------------------------------------------------------
-
-    if (
-        player.hp <= 0 ||
-        cpu.hp <= 0
-    ) {
-
-        endGame();
-    }
 }
 
 
@@ -1300,109 +1214,83 @@ function update(dt) {
 // HUD
 // ============================================================
 
-function updateHud() {
+function updateHUD() {
 
     playerHp.style.width =
         (player.hp * 10) + "%";
+
 
     enemyHp.style.width =
         (cpu.hp * 10) + "%";
 
 
     playerHpText.textContent =
-        player.hp + " / 10";
+        player.hp +
+        " / 10";
+
 
     enemyHpText.textContent =
-        cpu.hp + " / 10";
-
-
-    // レベル表示
-    let levelText =
-        document.getElementById(
-            "levelText"
-        );
-
-
-    if (!levelText) {
-
-        levelText =
-            document.createElement("div");
-
-        levelText.id =
-            "levelText";
-
-        levelText.style.position =
-            "absolute";
-
-        levelText.style.left =
-            "50%";
-
-        levelText.style.top =
-            "70px";
-
-        levelText.style.transform =
-            "translateX(-50%)";
-
-        levelText.style.color =
-            "white";
-
-        levelText.style.fontWeight =
-            "bold";
-
-        levelText.style.fontSize =
-            "14px";
-
-        levelText.style.pointerEvents =
-            "none";
-
-        document
-            .getElementById("gameWrap")
-            .appendChild(levelText);
-    }
+        cpu.hp +
+        " / 10";
 
 
     levelText.textContent =
         "LEVEL " +
-        currentLevel +
-        "  -  " +
-        LEVELS[currentLevel].name;
+        level +
+        "  " +
+        MAPS[level].name;
+
 }
 
 
 // ============================================================
-// ゲーム終了
+// 勝敗
 // ============================================================
 
-function endGame() {
+function finishGame() {
 
     gameRunning = false;
+
 
     resultScreen.classList.remove(
         "hidden"
     );
 
 
-    const playerWon =
-        cpu.hp <= 0 &&
-        player.hp > 0;
+    hud.classList.add(
+        "hidden"
+    );
 
 
-    if (playerWon) {
+    if (
+        player.hp > 0 &&
+        cpu.hp <= 0
+    ) {
 
         resultTitle.textContent =
             "YOU WIN!";
 
-        if (currentLevel < 5) {
+
+        if (level < 5) {
 
             resultText.textContent =
                 "LEVEL " +
-                currentLevel +
+                level +
                 " CLEAR!";
+
+
+            nextLevelBtn.style.display =
+                "inline-block";
 
         } else {
 
             resultText.textContent =
-                "ALL LEVELS CLEAR!";
+                "ALL 5 LEVELS CLEAR!";
+
+
+            nextLevelBtn.style.display =
+                "none";
+
         }
 
     } else {
@@ -1410,14 +1298,126 @@ function endGame() {
         resultTitle.textContent =
             "YOU LOSE";
 
+
         resultText.textContent =
-            "CPUに負けました。もう一度挑戦しよう！";
+            "CPUに負けました。";
+
+
+        nextLevelBtn.style.display =
+            "none";
+
     }
+
 }
 
 
 // ============================================================
-// 背景描画
+// 更新
+// ============================================================
+
+function update(dt) {
+
+    updatePlayer(dt);
+
+    updateCPUAI(dt);
+
+    updateBullets(dt);
+
+    updateParticles(dt);
+
+    updateHUD();
+
+
+    if (
+        player.hp <= 0 ||
+        cpu.hp <= 0
+    ) {
+
+        finishGame();
+
+    }
+
+}
+
+
+// ============================================================
+// 描画
+// ============================================================
+
+let screenW =
+    window.innerWidth;
+
+let screenH =
+    window.innerHeight;
+
+
+function resize() {
+
+    screenW =
+        window.innerWidth;
+
+    screenH =
+        window.innerHeight;
+
+
+    const dpr =
+        window.devicePixelRatio ||
+        1;
+
+
+    canvas.width =
+        screenW * dpr;
+
+
+    canvas.height =
+        screenH * dpr;
+
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+
+}
+
+
+window.addEventListener(
+    "resize",
+    resize
+);
+
+
+resize();
+
+
+function sx(x) {
+
+    return (
+        x *
+        screenW /
+        WORLD_WIDTH
+    );
+
+}
+
+
+function sy(y) {
+
+    return (
+        y *
+        screenH /
+        WORLD_HEIGHT
+    );
+
+}
+
+
+// ============================================================
+// 背景
 // ============================================================
 
 function drawBackground() {
@@ -1427,96 +1427,106 @@ function drawBackground() {
             0,
             0,
             0,
-            H
+            screenH
         );
 
 
     gradient.addColorStop(
         0,
-        "#10182f"
+        "#111a35"
     );
+
 
     gradient.addColorStop(
         1,
-        "#293a60"
+        "#26395d"
     );
 
 
     ctx.fillStyle =
         gradient;
 
+
     ctx.fillRect(
         0,
         0,
-        W,
-        H
+        screenW,
+        screenH
     );
 
 
-    // 建物
+    // 背景の建物
     ctx.fillStyle =
-        "rgba(255,255,255,0.035)";
+        "rgba(255,255,255,0.04)";
 
 
     for (
         let i = 0;
-        i < 20;
+        i < 16;
         i++
     ) {
 
-        const width =
-            45 + (i % 4) * 20;
+        const x =
+            i *
+            screenW /
+            15;
+
 
         const height =
-            70 + (i % 5) * 30;
+            80 +
+            (i % 5) * 25;
 
 
         ctx.fillRect(
-            i * 75 * (W / WORLD_WIDTH),
-            H * 0.86 - height,
-            width * (W / WORLD_WIDTH),
+            x,
+            screenH - height,
+            60,
             height
         );
+
     }
+
 }
 
 
 // ============================================================
-// マップ描画
+// マップ
 // ============================================================
 
 function drawMap() {
 
     // 地面
-
     ctx.fillStyle =
-        "#151e31";
+        "#121a2a";
+
 
     ctx.fillRect(
         0,
         sy(GROUND_Y),
-        W,
-        H - sy(GROUND_Y)
+        screenW,
+        screenH
     );
 
 
+    // 地面ライン
     ctx.fillStyle =
-        "#536680";
+        "#71829e";
+
 
     ctx.fillRect(
         0,
         sy(GROUND_Y),
-        W,
-        6
+        screenW,
+        5
     );
 
 
     // 足場
-
     for (const p of platforms) {
 
         ctx.fillStyle =
-            "#596b88";
+            "#536985";
+
 
         ctx.fillRect(
             sx(p.x),
@@ -1527,7 +1537,8 @@ function drawMap() {
 
 
         ctx.fillStyle =
-            "#8195b7";
+            "#91a6c4";
+
 
         ctx.fillRect(
             sx(p.x),
@@ -1535,12 +1546,14 @@ function drawMap() {
             sx(p.w),
             4
         );
+
     }
+
 }
 
 
 // ============================================================
-// キャラクター描画
+// キャラクター
 // ============================================================
 
 function drawFighter(fighter) {
@@ -1551,10 +1564,10 @@ function drawFighter(fighter) {
     const y =
         sy(fighter.y);
 
-    const width =
+    const w =
         sx(fighter.w);
 
-    const height =
+    const h =
         sy(fighter.h);
 
 
@@ -1562,69 +1575,78 @@ function drawFighter(fighter) {
 
 
     if (
-        fighter.hitFlash > 0
+        fighter.hitTimer > 0
     ) {
 
         ctx.globalAlpha =
-            0.5;
+            0.45;
+
     }
 
 
-    // 本体
+    // 体
     ctx.fillStyle =
         fighter.color;
+
 
     ctx.fillRect(
         x,
         y,
-        width,
-        height
+        w,
+        h
     );
 
 
     // 頭
     ctx.fillStyle =
-        "#f4d1b5";
+        "#f2c8aa";
+
 
     ctx.beginPath();
 
+
     ctx.arc(
-        x + width / 2,
-        y + 13 * (W / WORLD_WIDTH),
-        10 * (W / WORLD_WIDTH),
+        x + w / 2,
+        y + 13,
+        10,
         0,
         Math.PI * 2
     );
+
 
     ctx.fill();
 
 
     // 銃
     ctx.fillStyle =
-        "#101522";
+        "#0c1018";
 
 
-    if (fighter.facing > 0) {
+    if (
+        fighter.facing > 0
+    ) {
 
         ctx.fillRect(
-            x + width,
-            y + 23 * (W / WORLD_WIDTH),
-            28 * (W / WORLD_WIDTH),
-            6 * (W / WORLD_WIDTH)
+            x + w,
+            y + 24,
+            28,
+            7
         );
 
     } else {
 
         ctx.fillRect(
-            x - 28 * (W / WORLD_WIDTH),
-            y + 23 * (W / WORLD_WIDTH),
-            28 * (W / WORLD_WIDTH),
-            6 * (W / WORLD_WIDTH)
+            x - 28,
+            y + 24,
+            28,
+            7
         );
+
     }
 
 
     ctx.restore();
+
 }
 
 
@@ -1632,30 +1654,35 @@ function drawFighter(fighter) {
 // 弾描画
 // ============================================================
 
-function drawShots() {
+function drawBullets() {
 
-    for (const shot of shots) {
+    for (const bullet of bullets) {
 
         ctx.fillStyle =
-            "#fff3a1";
+            "#ffe681";
+
 
         ctx.beginPath();
 
+
         ctx.arc(
-            sx(shot.x),
-            sy(shot.y),
+            sx(bullet.x),
+            sy(bullet.y),
             4,
             0,
             Math.PI * 2
         );
 
+
         ctx.fill();
+
     }
+
 }
 
 
 // ============================================================
-// パーティクル描画
+// パーティクル
 // ============================================================
 
 function drawParticles() {
@@ -1665,11 +1692,13 @@ function drawParticles() {
         ctx.globalAlpha =
             Math.max(
                 0,
-                p.life / 0.4
+                p.life / 0.35
             );
 
+
         ctx.fillStyle =
-            "#ffd66b";
+            "#ffd86b";
+
 
         ctx.fillRect(
             sx(p.x),
@@ -1677,14 +1706,17 @@ function drawParticles() {
             4,
             4
         );
+
     }
 
+
     ctx.globalAlpha = 1;
+
 }
 
 
 // ============================================================
-// 全体描画
+// 描画
 // ============================================================
 
 function draw() {
@@ -1692,8 +1724,8 @@ function draw() {
     ctx.clearRect(
         0,
         0,
-        W,
-        H
+        screenW,
+        screenH
     );
 
 
@@ -1705,9 +1737,10 @@ function draw() {
 
     drawFighter(cpu);
 
-    drawShots();
+    drawBullets();
 
     drawParticles();
+
 }
 
 
@@ -1715,21 +1748,24 @@ function draw() {
 // ゲームループ
 // ============================================================
 
-function gameLoop(now) {
+function gameLoop(time) {
 
     if (!gameRunning) {
+
         return;
+
     }
 
 
     const dt =
         Math.min(
             0.033,
-            (now - lastTime) / 1000
+            (time - lastTime) / 1000
         );
 
 
-    lastTime = now;
+    lastTime =
+        time;
 
 
     update(dt);
@@ -1740,6 +1776,466 @@ function gameLoop(now) {
     requestAnimationFrame(
         gameLoop
     );
+
+}
+
+
+// ============================================================
+// レベル選択
+// ============================================================
+
+document
+    .querySelectorAll(".levelButton")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                level =
+                    Number(
+                        button.dataset.level
+                    );
+
+
+                document
+                    .querySelectorAll(
+                        ".levelButton"
+                    )
+                    .forEach(b => {
+
+                        b.classList.remove(
+                            "selected"
+                        );
+
+                    });
+
+
+                button.classList.add(
+                    "selected"
+                );
+
+            }
+        );
+
+    });
+
+
+// ============================================================
+// スタート
+// ============================================================
+
+function startGame() {
+
+    resetGame();
+
+
+    startScreen.classList.add(
+        "hidden"
+    );
+
+
+    resultScreen.classList.add(
+        "hidden"
+    );
+
+
+    hud.classList.remove(
+        "hidden"
+    );
+
+
+    gameRunning = true;
+
+
+    lastTime =
+        performance.now();
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+startBtn.addEventListener(
+    "click",
+    startGame
+);
+
+
+// ============================================================
+// 再戦
+// ============================================================
+
+restartBtn.addEventListener(
+    "click",
+    () => {
+
+        resultScreen.classList.add(
+            "hidden"
+        );
+
+
+        hud.classList.remove(
+            "hidden"
+        );
+
+
+        startGame();
+
+    }
+);
+
+
+// ============================================================
+// 次のレベル
+// ============================================================
+
+nextLevelBtn.addEventListener(
+    "click",
+    () => {
+
+        if (level < 5) {
+
+            level++;
+
+        }
+
+
+        resultScreen.classList.add(
+            "hidden"
+        );
+
+
+        hud.classList.remove(
+            "hidden"
+        );
+
+
+        startGame();
+
+    }
+);
+
+
+// ============================================================
+// キーボード
+// ============================================================
+
+window.addEventListener(
+    "keydown",
+    e => {
+
+        const key =
+            e.key.toLowerCase();
+
+
+        if (
+            key === "a" ||
+            key === "arrowleft"
+        ) {
+
+            keys.left = true;
+
+        }
+
+
+        if (
+            key === "d" ||
+            key === "arrowright"
+        ) {
+
+            keys.right = true;
+
+        }
+
+
+        if (
+            key === "w" ||
+            key === "arrowup" ||
+            key === " "
+        ) {
+
+            keys.jump = true;
+
+            e.preventDefault();
+
+        }
+
+
+        if (key === "f") {
+
+            keys.shoot = true;
+
+        }
+
+    }
+);
+
+
+window.addEventListener(
+    "keyup",
+    e => {
+
+        const key =
+            e.key.toLowerCase();
+
+
+        if (
+            key === "a" ||
+            key === "arrowleft"
+        ) {
+
+            keys.left = false;
+
+        }
+
+
+        if (
+            key === "d" ||
+            key === "arrowright"
+        ) {
+
+            keys.right = false;
+
+        }
+
+
+        if (
+            key === "w" ||
+            key === "arrowup" ||
+            key === " "
+        ) {
+
+            keys.jump = false;
+
+        }
+
+
+        if (key === "f") {
+
+            keys.shoot = false;
+
+        }
+
+    }
+);
+
+
+// ============================================================
+// マウス射撃
+// ============================================================
+
+canvas.addEventListener(
+    "pointerdown",
+    () => {
+
+        keys.shoot = true;
+
+        initAudio();
+
+    }
+);
+
+
+window.addEventListener(
+    "pointerup",
+    () => {
+
+        keys.shoot = false;
+
+    }
+);
+
+
+// ============================================================
+// スマホ
+// ============================================================
+
+document
+    .querySelectorAll("[data-key]")
+    .forEach(button => {
+
+        const key =
+            button.dataset.key;
+
+
+        button.addEventListener(
+            "pointerdown",
+            e => {
+
+                e.preventDefault();
+
+                keys[key] = true;
+
+                initAudio();
+
+            }
+        );
+
+
+        button.addEventListener(
+            "pointerup",
+            e => {
+
+                e.preventDefault();
+
+                keys[key] = false;
+
+            }
+        );
+
+
+        button.addEventListener(
+            "pointercancel",
+            () => {
+
+                keys[key] = false;
+
+            }
+        );
+
+
+        button.addEventListener(
+            "pointerleave",
+            () => {
+
+                keys[key] = false;
+
+            }
+        );
+
+    });
+
+
+// ============================================================
+// サウンド
+// ============================================================
+
+let audioContext = null;
+
+
+function initAudio() {
+
+    if (!audioContext) {
+
+        audioContext =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+    }
+
+
+    if (
+        audioContext.state ===
+        "suspended"
+    ) {
+
+        audioContext.resume();
+
+    }
+
+}
+
+
+function beep(
+    frequency,
+    duration,
+    type,
+    volume
+) {
+
+    if (!audioContext) {
+
+        return;
+
+    }
+
+
+    const oscillator =
+        audioContext.createOscillator();
+
+
+    const gain =
+        audioContext.createGain();
+
+
+    oscillator.type =
+        type;
+
+
+    oscillator.frequency.value =
+        frequency;
+
+
+    gain.gain.setValueAtTime(
+        volume,
+        audioContext.currentTime
+    );
+
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime +
+        duration
+    );
+
+
+    oscillator.connect(gain);
+
+    gain.connect(
+        audioContext.destination
+    );
+
+
+    oscillator.start();
+
+
+    oscillator.stop(
+        audioContext.currentTime +
+        duration
+    );
+
+}
+
+
+function playShootSound() {
+
+    beep(
+        160,
+        0.05,
+        "square",
+        0.035
+    );
+
+}
+
+
+function playHitSound() {
+
+    beep(
+        80,
+        0.08,
+        "sawtooth",
+        0.05
+    );
+
+}
+
+
+function playJumpSound() {
+
+    beep(
+        350,
+        0.06,
+        "triangle",
+        0.025
+    );
+
 }
 
 
@@ -1747,7 +2243,7 @@ function gameLoop(now) {
 // 初期化
 // ============================================================
 
-loadLevel(1);
+loadMap();
 
 resetGame();
 
