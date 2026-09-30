@@ -1784,41 +1784,43 @@ function gameLoop(time) {
 // レベル選択
 // ============================================================
 
-document
-    .querySelectorAll(".levelButton")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                level =
-                    Number(
-                        button.dataset.level
-                    );
+const levelButtons =
+    document.querySelectorAll(".levelButton");
 
 
-                document
-                    .querySelectorAll(
-                        ".levelButton"
-                    )
-                    .forEach(b => {
+levelButtons.forEach(button => {
 
-                        b.classList.remove(
-                            "selected"
-                        );
+    button.addEventListener("click", function(e) {
 
-                    });
+        e.preventDefault();
+        e.stopPropagation();
 
 
-                button.classList.add(
-                    "selected"
-                );
+        const selectedLevel =
+            Number(this.dataset.level);
 
-            }
+
+        // 選択されたレベルを保存
+        level = selectedLevel;
+
+
+        // 見た目を変更
+        levelButtons.forEach(b => {
+            b.classList.remove("selected");
+        });
+
+
+        this.classList.add("selected");
+
+
+        console.log(
+            "Selected Level:",
+            level
         );
 
     });
+
+});
 
 
 // ============================================================
