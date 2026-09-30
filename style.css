@@ -1,1 +1,569 @@
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1020;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff;touch-action:none}#gameWrap{position:relative;width:100vw;height:100vh;overflow:hidden}canvas{display:block;width:100%;height:100%;background:#11182b}.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(4,7,16,.72);backdrop-filter:blur(4px);z-index:10}.panel{width:min(520px,90vw);padding:32px 26px;text-align:center;border:1px solid rgba(255,255,255,.15);border-radius:22px;background:rgba(17,24,39,.92);box-shadow:0 20px 70px rgba(0,0,0,.4)}h1{font-size:clamp(42px,10vw,78px);letter-spacing:.08em;margin:0 0 4px}h2{font-size:42px;margin:0 0 10px}.panel p{opacity:.75;letter-spacing:.16em}.panel button{border:0;border-radius:14px;padding:15px 42px;margin:18px 0 16px;font-size:20px;font-weight:800;cursor:pointer;background:#fff;color:#101522}.help{display:grid;gap:6px;font-size:13px;opacity:.68}.hidden{display:none!important}#hud{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:min(900px,94vw);display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;z-index:5;pointer-events:none}.hpBox{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:12px}.bar{height:13px;background:#263149;border-radius:99px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}.bar i{display:block;width:100%;height:100%;background:#5ee68a;transition:width .1s}.enemy .bar i{background:#ff6677}.status{font-size:11px;opacity:.6;letter-spacing:.12em}.touchLeft,.touchRight{position:absolute;bottom:20px;display:flex;gap:12px;z-index:6}.touchLeft{left:18px}.touchRight{right:18px}.touchLeft button,.touchRight button{width:64px;height:64px;border:1px solid rgba(255,255,255,.2);border-radius:18px;background:rgba(20,28,47,.68);color:#fff;font-size:26px;backdrop-filter:blur(5px);user-select:none;-webkit-user-select:none}.touchRight button:last-child{font-size:20px}.touchLeft button:active,.touchRight button:active{background:rgba(255,255,255,.2)}@media(min-width:800px){#touchControls{display:none}}@media(max-width:500px){#hud{gap:7px}.hpBox{grid-template-columns:auto 1fr;gap:5px}.hpBox span{display:none}.bar{height:10px}.status{font-size:9px}.touchLeft button,.touchRight button{width:58px;height:58px}}
+* {
+  box-sizing: border-box;
+}
+
+
+html,
+body {
+
+  margin: 0;
+
+  padding: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  overflow: hidden;
+
+  background: #101522;
+
+  font-family:
+    Arial,
+    "Noto Sans JP",
+    sans-serif;
+
+  color: white;
+
+}
+
+
+body {
+
+  touch-action: none;
+
+}
+
+
+#gameWrap {
+
+  position: relative;
+
+  width: 100vw;
+
+  height: 100vh;
+
+  overflow: hidden;
+
+}
+
+
+#game {
+
+  position: absolute;
+
+  left: 0;
+
+  top: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  display: block;
+
+}
+
+
+/* =========================
+   共通
+========================= */
+
+.hidden {
+
+  display: none !important;
+
+}
+
+
+button {
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+  border: none;
+
+}
+
+
+/* =========================
+   START SCREEN
+========================= */
+
+#startScreen {
+
+  position: absolute;
+
+  z-index: 100;
+
+  inset: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background:
+    rgba(5, 9, 20, 0.88);
+
+}
+
+
+#startPanel {
+
+  width: min(92vw, 520px);
+
+  padding: 30px 24px;
+
+  text-align: center;
+
+  background: #182238;
+
+  border: 1px solid #526582;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 20px 70px rgba(0,0,0,.5);
+
+}
+
+
+#startPanel h1 {
+
+  margin: 0;
+
+  font-size: clamp(38px, 9vw, 64px);
+
+  letter-spacing: 4px;
+
+}
+
+
+.subtitle {
+
+  margin-top: 5px;
+
+  opacity: .7;
+
+}
+
+
+#startPanel h2 {
+
+  margin-top: 28px;
+
+  font-size: 20px;
+
+}
+
+
+/* =========================
+   LEVEL SELECT
+========================= */
+
+#levelSelect {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(5, 1fr);
+
+  gap: 8px;
+
+  width: 100%;
+
+  margin: 15px 0;
+
+}
+
+
+.levelButton {
+
+  display: block;
+
+  width: 100%;
+
+  min-height: 48px;
+
+  padding: 8px 4px;
+
+  color: white;
+
+  background: #2b3a57;
+
+  border: 2px solid #526582;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+
+  font-weight: bold;
+
+  opacity: 1;
+
+}
+
+
+.levelButton:hover {
+
+  background: #3c506f;
+
+}
+
+
+.levelButton.selected {
+
+  color: #101522;
+
+  background: white;
+
+  border-color: white;
+
+}
+
+
+#selectedLevel {
+
+  margin: 10px 0 18px;
+
+  font-weight: bold;
+
+  font-size: 16px;
+
+  color: #9ed0ff;
+
+}
+
+
+/* =========================
+   START BUTTON
+========================= */
+
+#startBtn {
+
+  width: 100%;
+
+  padding: 15px;
+
+  margin-top: 5px;
+
+  color: #101522;
+
+  background: #ffffff;
+
+  border-radius: 10px;
+
+  font-size: 19px;
+
+  font-weight: bold;
+
+}
+
+
+#startBtn:hover {
+
+  background: #dcecff;
+
+}
+
+
+/* =========================
+   操作説明
+========================= */
+
+#controlsText {
+
+  margin-top: 20px;
+
+  padding-top: 15px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.12);
+
+  font-size: 12px;
+
+  opacity: .65;
+
+}
+
+
+#controlsText p {
+
+  margin: 4px 0;
+
+}
+
+
+/* =========================
+   HUD
+========================= */
+
+#hud {
+
+  position: absolute;
+
+  z-index: 20;
+
+  top: 15px;
+
+  left: 15px;
+
+  right: 15px;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  pointer-events: none;
+
+}
+
+
+.hpArea {
+
+  width: min(30vw, 280px);
+
+}
+
+
+.hpName {
+
+  font-size: 13px;
+
+  font-weight: bold;
+
+  margin-bottom: 4px;
+
+}
+
+
+.hpBar {
+
+  height: 16px;
+
+  overflow: hidden;
+
+  background: #252d3d;
+
+  border: 1px solid #71809b;
+
+  border-radius: 8px;
+
+}
+
+
+.hpBar div {
+
+  width: 100%;
+
+  height: 100%;
+
+  background: #4da6ff;
+
+  transition: width .15s;
+
+}
+
+
+.cpuHp .hpBar div {
+
+  background: #ff5369;
+
+}
+
+
+#playerHpText,
+#enemyHpText {
+
+  font-size: 11px;
+
+}
+
+
+#levelText {
+
+  font-size: 14px;
+
+  font-weight: bold;
+
+  padding: 7px 12px;
+
+  background: rgba(10,15,28,.7);
+
+  border-radius: 8px;
+
+}
+
+
+/* =========================
+   RESULT
+========================= */
+
+#resultScreen {
+
+  position: absolute;
+
+  z-index: 200;
+
+  inset: 0;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  background:
+    rgba(5,9,20,.86);
+
+}
+
+
+#resultPanel {
+
+  width: min(90vw, 450px);
+
+  padding: 30px;
+
+  text-align: center;
+
+  background: #182238;
+
+  border: 1px solid #526582;
+
+  border-radius: 18px;
+
+}
+
+
+#resultPanel button {
+
+  display: block;
+
+  width: 100%;
+
+  margin-top: 10px;
+
+  padding: 13px;
+
+  border-radius: 9px;
+
+  font-weight: bold;
+
+  color: white;
+
+  background: #30415f;
+
+}
+
+
+#resultPanel button:hover {
+
+  background: #415675;
+
+}
+
+
+/* =========================
+   TOUCH
+========================= */
+
+#touchControls {
+
+  position: absolute;
+
+  z-index: 50;
+
+  left: 0;
+
+  right: 0;
+
+  bottom: 15px;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  padding: 0 15px;
+
+  pointer-events: none;
+
+}
+
+
+#touchControls > div {
+
+  display: flex;
+
+  gap: 10px;
+
+}
+
+
+#touchControls button {
+
+  width: 64px;
+
+  height: 64px;
+
+  border-radius: 50%;
+
+  color: white;
+
+  background:
+    rgba(30,45,70,.78);
+
+  border:
+    2px solid
+    rgba(255,255,255,.25);
+
+  font-size: 22px;
+
+  pointer-events: auto;
+
+  touch-action: none;
+
+}
+
+
+@media (min-width: 800px) {
+
+  #touchControls {
+
+    opacity: .35;
+
+  }
+
+}
+
+
+@media (max-width: 600px) {
+
+  #levelSelect {
+
+    grid-template-columns:
+      repeat(3, 1fr);
+
+  }
+
+
+  #startPanel {
+
+    padding: 22px 18px;
+
+  }
+
+
+  .levelButton {
+
+    min-height: 44px;
+
+  }
+
+}
