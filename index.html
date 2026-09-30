@@ -1,151 +1,130 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-  <title>AI ARENA - 2D Shooter</title>
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>AI ARENA</title>
 
   <link rel="stylesheet" href="style.css">
+
 </head>
+
 
 <body>
 
-<main id="gameWrap">
+<div id="gameWrap">
 
   <canvas id="game"></canvas>
 
 
   <!-- =========================
-       スタート画面
+       START SCREEN
   ========================== -->
 
-  <section id="startScreen" class="overlay">
+  <div id="startScreen">
 
-    <div class="panel">
+    <div id="startPanel">
 
       <h1>AI ARENA</h1>
 
-      <p>1 VS 1 2D SHOOTER</p>
+      <p class="subtitle">
+        2D 1 VS 1 SHOOTER
+      </p>
 
 
-      <h3>SELECT LEVEL</h3>
+      <h2>SELECT LEVEL</h2>
+
 
       <div id="levelSelect">
 
-        <button class="levelButton selected" data-level="1">
+        <button
+          class="levelButton selected"
+          data-level="1"
+          type="button"
+        >
           LEVEL 1
         </button>
 
-        <button class="levelButton" data-level="2">
+
+        <button
+          class="levelButton"
+          data-level="2"
+          type="button"
+        >
           LEVEL 2
         </button>
 
-        <button class="levelButton" data-level="3">
+
+        <button
+          class="levelButton"
+          data-level="3"
+          type="button"
+        >
           LEVEL 3
         </button>
 
-        <button class="levelButton" data-level="4">
+
+        <button
+          class="levelButton"
+          data-level="4"
+          type="button"
+        >
           LEVEL 4
         </button>
 
-        <button class="levelButton" data-level="5">
+
+        <button
+          class="levelButton"
+          data-level="5"
+          type="button"
+        >
           LEVEL 5
         </button>
 
       </div>
 
 
-      <button id="startBtn">
+      <div id="selectedLevel">
+        Selected: LEVEL 1
+      </div>
+
+
+      <button
+        id="startBtn"
+        type="button"
+      >
         START
       </button>
 
 
-      <div class="help">
+      <div id="controlsText">
 
-        <span>PC：A / D または ← / → = 移動</span>
+        <p>PC</p>
 
-        <span>W / ↑ / Space = ジャンプ</span>
+        <p>
+          A / D または ← / →：移動
+        </p>
 
-        <span>F / クリック = 射撃</span>
+        <p>
+          W / ↑ / Space：ジャンプ
+        </p>
 
-        <span>スマホ：画面下のボタン</span>
+        <p>
+          F / クリック：射撃
+        </p>
+
+        <p>
+          スマホ：画面下のボタン
+        </p>
 
       </div>
-
-    </div>
-
-  </section>
-
-
-  <!-- =========================
-       勝敗画面
-  ========================== -->
-
-  <section id="resultScreen" class="overlay hidden">
-
-    <div class="panel">
-
-      <h2 id="resultTitle">
-        YOU WIN!
-      </h2>
-
-      <p id="resultText"></p>
-
-      <button id="nextLevelBtn">
-        NEXT LEVEL
-      </button>
-
-      <button id="restartBtn">
-        REMATCH
-      </button>
-
-    </div>
-
-  </section>
-
-
-  <!-- =========================
-       HUD
-  ========================== -->
-
-  <div id="hud" class="hidden">
-
-    <div class="hpBox">
-
-      <b>YOU</b>
-
-      <div class="bar">
-        <i id="playerHp"></i>
-      </div>
-
-      <span id="playerHpText">
-        10 / 10
-      </span>
-
-    </div>
-
-
-    <div class="status">
-
-      <span id="levelText">
-        LEVEL 1
-      </span>
-
-    </div>
-
-
-    <div class="hpBox enemy">
-
-      <b>CPU</b>
-
-      <div class="bar">
-        <i id="enemyHp"></i>
-      </div>
-
-      <span id="enemyHpText">
-        10 / 10
-      </span>
 
     </div>
 
@@ -153,12 +132,108 @@
 
 
   <!-- =========================
-       スマホ操作
+       HUD
+  ========================== -->
+
+  <div
+    id="hud"
+    class="hidden"
+  >
+
+    <div class="hpArea">
+
+      <div class="hpName">
+        YOU
+      </div>
+
+      <div class="hpBar">
+        <div id="playerHp"></div>
+      </div>
+
+      <div id="playerHpText">
+        10 / 10
+      </div>
+
+    </div>
+
+
+    <div id="levelText">
+      LEVEL 1
+    </div>
+
+
+    <div class="hpArea cpuHp">
+
+      <div class="hpName">
+        CPU
+      </div>
+
+      <div class="hpBar">
+        <div id="enemyHp"></div>
+      </div>
+
+      <div id="enemyHpText">
+        10 / 10
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       RESULT
+  ========================== -->
+
+  <div
+    id="resultScreen"
+    class="hidden"
+  >
+
+    <div id="resultPanel">
+
+      <h1 id="resultTitle">
+        YOU WIN!
+      </h1>
+
+      <p id="resultText"></p>
+
+
+      <button
+        id="nextLevelBtn"
+        type="button"
+      >
+        NEXT LEVEL
+      </button>
+
+
+      <button
+        id="restartBtn"
+        type="button"
+      >
+        REMATCH
+      </button>
+
+
+      <button
+        id="menuBtn"
+        type="button"
+      >
+        LEVEL SELECT
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       TOUCH CONTROLS
   ========================== -->
 
   <div id="touchControls">
 
-    <div class="touchLeft">
+    <div>
 
       <button data-key="left">
         ◀
@@ -171,7 +246,7 @@
     </div>
 
 
-    <div class="touchRight">
+    <div>
 
       <button data-key="jump">
         ▲
@@ -185,11 +260,12 @@
 
   </div>
 
-</main>
+
+</div>
 
 
-<!-- ★ キャッシュ対策で ?v=2 を付けています -->
-<script src="game.js?v=2"></script>
+<script src="game.js?v=5"></script>
 
 </body>
+
 </html>
